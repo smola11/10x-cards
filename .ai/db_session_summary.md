@@ -1,5 +1,6 @@
 <conversation_summary>
 <decisions>
+
 1. Brak grupowania w decki; fiszki są płaską listą per użytkownik.
 2. Brak przechowywania stanu algorytmu powtórek w MVP.
 3. Sesje nauki odłożone na później.
@@ -14,9 +15,10 @@
 12. Trigger `BEFORE UPDATE` aktualizujący `flashcards.updated_at = now()`.
 13. Usuwanie: twarde; bez `deleted_at`; FKs z `ON DELETE CASCADE` dla powiązań użytkownika.
 14. Brak deduplikacji fiszek (unikalności) na tym etapie.
-</decisions>
+    </decisions>
 
 <matched_recommendations>
+
 1. Enum `origin` bez wartości domyślnej — przyjęto; (wartości 'manual'/'ai').
 2. CHECK spójności `origin` ↔ `generation_id` — przyjęto.
 3. `flashcards.generation_id` `ON DELETE SET NULL` — przyjęto.
@@ -27,34 +29,39 @@
 8. Trigger na `updated_at` w `flashcards` — przyjęto.
 9. RLS owner-only w Supabase, bez dodatkowych triggerów/constraintów biznesowych — przyjęto.
 10. Rezygnacja z deduplikacji oraz triggerów utrzymujących `accepted_count` — odrzucono wcześniejsze rekomendacje automatyzacji.
-</matched_recommendations>
+    </matched_recommendations>
 
 <database_planning_summary>
 a. Główne wymagania schematu:
+
 - Dwie tabele: `flashcards` (zaakceptowane fiszki) i `generations` (metryki i kontekst wejściowy AI).
 - Walidacje długości: `front/back` 1–2000; `generations.prompt_text` 1000–10000.
 - Spójność biznesowa: CHECK łączący `origin` i `generation_id`.
 - Klucze `uuid`, znaczniki czasu, trigger do aktualizacji `updated_at`.
 
 b. Kluczowe encje i relacje:
+
 - `flashcards` N:1 `generations` (opcjonalne; `generation_id` może być NULL).
 - `flashcards.user_id` i `generations.user_id` wskazują użytkownika; brak twardego wymuszenia zgodności właściciela między tabelami.
 - Kaskady: usunięcie `generations` nie usuwa fiszek (SET NULL); usunięcie użytkownika usuwa powiązane rekordy.
 
 c. Bezpieczeństwo i skalowalność:
+
 - RLS owner-only na obu tabelach, oparte o `auth.uid()`.
 - Indeksy pod listowanie i filtrowanie po użytkowniku oraz łączenie po `generation_id`.
 - Minimalny zakres danych (brak propozycji AI per-item), co upraszcza schemat i poprawia wydajność.
 
 d. Nierozwiązane/ryzyka:
+
 - Brak automatycznego utrzymania `accepted_count` względem `flashcards`; spójność liczników zależna od warstwy aplikacyjnej.
 - Brak wymuszenia zgodności `user_id` między `flashcards` i `generations` może pozwolić na przypadkowe powiązania między użytkownikami (częściowo łagodzone przez RLS).
-</database_planning_summary>
+  </database_planning_summary>
 
 <unresolved_issues>
+
 1. Wartości enum `origin` — czy przyjmujemy dokładnie {'manual','ai'}?
 2. Domyślne wartości dla `flashcards.created_at`/`updated_at` (np. `DEFAULT now()`) — potwierdzić.
 3. Dokładne definicje polityk RLS (USING/WITH CHECK) dla obu tabel — do doprecyzowania.
 4. Ewentualne limity długości dla `model` (np. CHECK/constraint) — do ustalenia.
-</unresolved_issues>
-</conversation_summary>
+   </unresolved_issues>
+   </conversation_summary>

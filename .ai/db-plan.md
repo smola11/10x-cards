@@ -60,6 +60,7 @@ FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 ```
 
 ### Kolumny i ograniczenia (opis)
+
 - public.generations
   - id: bigserial PK
   - user_id: uuid NOT NULL → FK do `auth.users(id)` ON DELETE CASCADE
@@ -81,8 +82,8 @@ FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
   - updated_at: timestamptz NOT NULL, DEFAULT now() (utrzymywane triggerem na UPDATE)
   - CHECK spójności origin ↔ generation_id (jak w DDL powyżej)
 
-
 ## 2. Relacje między tabelami
+
 - auth.users 1:N public.generations
   - Klucz obcy: `generations.user_id` → `auth.users.id` (ON DELETE CASCADE)
 
@@ -93,8 +94,8 @@ FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
   - Klucz obcy: `flashcards.generation_id` → `generations.id` (ON DELETE SET NULL)
   - Kardynalność: jedna generacja może mieć wiele fiszek; fiszka może (ale nie musi) wskazywać generację
 
-
 ## 3. Indeksy
+
 ```sql
 -- Pod listowanie fiszek i sortowanie po czasie
 CREATE INDEX IF NOT EXISTS idx_flashcards_user_created_at
@@ -109,8 +110,8 @@ CREATE INDEX IF NOT EXISTS idx_generations_user_created_at
   ON public.generations (user_id, created_at DESC);
 ```
 
-
 ## 4. Zasady PostgreSQL (RLS)
+
 RLS w modelu "owner-only" opartym o `auth.uid()` Supabase.
 
 ```sql
@@ -153,7 +154,7 @@ CREATE POLICY generations_delete_own ON public.generations
   FOR DELETE USING (user_id = auth.uid());
 ```
 
-
 ## 5. Dodatkowe uwagi i uzasadnienia
+
 - **Spójność origin ↔ generation_id**: wymuszona CHECK w `flashcards` (ai ⇒ wymagane powiązanie z `generations`, manual ⇒ brak powiązania).
 - **Domyślne znaczniki czasu**: `created_at` i `updated_at` (w `flashcards`) mają DEFAULT now(); `updated_at` aktualizowane triggerem na UPDATE.
