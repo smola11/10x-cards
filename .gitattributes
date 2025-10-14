@@ -1,0 +1,5 @@
+# Enforce LF line endings for source files
+*.ts text eol=lf
+*.tsx text eol=lf
+*.astro text eol=lf
+* text=auto eol=lf
