@@ -1,0 +1,20 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import LoginForm from "@/components/auth/LoginForm";
+
+const redirectTo = Astro.url.searchParams.get("redirect");
+---
+
+<Layout title="Logowanie | 10x Cards">
+  <main class="min-h-screen bg-background text-foreground">
+    <section class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-16 sm:px-6">
+      <header class="mb-8 space-y-2 text-center">
+        <h1 class="text-3xl font-semibold tracking-tight">Zaloguj się</h1>
+        <p class="text-sm text-muted-foreground">Uzyskaj dostęp do swojego konta 10x Cards, aby kontynuować naukę.</p>
+      </header>
+      <div class="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+        <LoginForm client:idle redirectTo={redirectTo} />
+      </div>
+    </section>
+  </main>
+</Layout>

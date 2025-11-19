@@ -1,0 +1,20 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import RegisterForm from "@/components/auth/RegisterForm";
+---
+
+<Layout title="Rejestracja | 10x Cards">
+  <main class="min-h-screen bg-background text-foreground">
+    <section class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-16 sm:px-6">
+      <header class="mb-8 space-y-2 text-center">
+        <h1 class="text-3xl font-semibold tracking-tight">Utwórz konto</h1>
+        <p class="text-sm text-muted-foreground">
+          Zacznij budować własne talie i wykorzystaj AI do generowania fiszek.
+        </p>
+      </header>
+      <div class="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+        <RegisterForm client:idle />
+      </div>
+    </section>
+  </main>
+</Layout>
