@@ -1,0 +1,14 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import FlashcardsListView from "@/components/flashcards/FlashcardsListView";
+import GenerationsList from "@/components/generation/GenerationsList";
+---
+
+<Layout title="Zapisane fiszki">
+  <main class="min-h-screen bg-background text-foreground">
+    <section class="mx-auto flex max-w-5xl flex-col gap-10 px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
+      <FlashcardsListView client:visible />
+      <GenerationsList client:visible />
+    </section>
+  </main>
+</Layout>
