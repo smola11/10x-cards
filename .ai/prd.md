@@ -132,8 +132,14 @@ Tytuł: Bezpieczny dostęp i autoryzacja
 Opis: Jako zalogowany użytkownik chcę mieć pewność, że moje fiszki nie są dostępne dla innych użytkowników, aby zachować prywatność i bezpieczeństwo danych.
 Kryteria akceptacji:
 
-- Tylko zalogowany użytkownik może wyświetlać, edytować i usuwać swoje fiszki.
+- Logowanie i rejestracja odbywają się na dedykowanych stronach.
+- Logowanie wymaga podania adresu email i hasła.
+- Rejestracja wymaga podania adresu email, hasła i potwierdzenia hasła.
+- Tylko zalogowany użytkownik może generować, wyświetlać, edytować i usuwać swoje fiszki.
 - Nie ma dostępu do fiszek innych użytkowników ani możliwości współdzielenia.
+- Użytkownik może się wylogować z systemu poprzez przycisk w prawym górnym rogu w głównym @Layout.astro.
+- Nie korzystamy z zewnętrznych serwisów logowania (np. Google, GitHub).
+- Odzyskiwanie hasła powinno być możliwe.
 
 ## 6. Metryki sukcesu
 
