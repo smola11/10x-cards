@@ -21,7 +21,7 @@ function ProposalsList({ items, onEdit, onToggleSelect, disabled }: ProposalsLis
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" data-testid="proposals-list">
       {items.map((item) => (
         <ProposalItem key={item.id} item={item} onEdit={onEdit} onToggleSelect={onToggleSelect} disabled={disabled} />
       ))}

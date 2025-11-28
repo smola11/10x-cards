@@ -22,6 +22,7 @@
 - **Styling**: Tailwind CSS 4, Shadcn/ui, Radix UI Slot
 - **Backend**: Supabase (PostgreSQL, Auth, BaaS SDK)
 - **AI Integration**: Openrouter.ai (multi-model gateway with cost controls)
+- **Testing & Quality**: Vitest (unit & integration), Playwright (E2E), MSW, Supertest, c8 (coverage), ESLint, Prettier, TypeScript
 - **CI/CD & Hosting**: GitHub Actions, Docker on DigitalOcean
 
 ## Getting Started Locally
@@ -79,6 +80,19 @@ Open your browser to `http://localhost:3000` to view the app.
 | `npm run lint`     | Run ESLint on all files        |
 | `npm run lint:fix` | Run ESLint and auto-fix        |
 | `npm run format`   | Format code with Prettier      |
+| `npm run test`     | Run Vitest in watch mode       |
+| `npm run test:unit`| Run unit tests once with Vitest|
+| `npm run test:e2e` | Run Playwright E2E tests       |
+
+### Testing
+
+- **Unit & integration tests (Vitest)**:
+  - `npm run test` – watch mode during development
+  - `npm run test:unit` – pojedyncze uruchomienie (CI-friendly)
+- **E2E tests (Playwright)**:
+  - `npm run test:e2e` – uruchamia testy w katalogu `e2e/` z użyciem `playwright.config.ts`
+  - `npm run test:e2e:ui` – interfejs webowy Playwright do lokalnego debugowania
+  - `npm run test:e2e:report` – otwiera ostatni raport HTML z testów E2E
 
 ## Project Scope
 

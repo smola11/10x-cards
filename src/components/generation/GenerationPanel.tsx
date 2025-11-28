@@ -327,7 +327,7 @@ function GenerationPanel() {
                   </Button>
                 ) : null}
 
-                <Button type="button" onClick={handleGenerate} disabled={!canGenerate}>
+                <Button type="button" onClick={handleGenerate} disabled={!canGenerate} data-testid="generate-button">
                   {state.pendingAction === "generate" ? "Generowanie..." : "Generuj propozycje"}
                 </Button>
               </div>
@@ -373,6 +373,13 @@ function GenerationPanel() {
                   Wygeneruj propozycje, aby rozpocząć proces akceptacji fiszek.
                 </p>
               </div>
+              {ctaHref ? (
+                <Button type="button" variant="link" size="sm" asChild className="mt-2">
+                  <a href={ctaHref} className="font-medium">
+                    Otwórz zapisane fiszki
+                  </a>
+                </Button>
+              ) : null}
             </div>
           ) : (
             <>
@@ -513,3 +520,5 @@ function readableErrorMessage(error: { status?: number; message?: string }): str
 
   return "Wystąpił błąd.";
 }
+
+export { mapGenerationToMeta, formatDuration, computeRemainingCapacity, handleAcceptError, readableErrorMessage };

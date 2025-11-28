@@ -48,6 +48,7 @@ function AcceptActionsBar({
             onClick={onSaveAll}
             disabled={disabled || validTotalCount === 0 || savingSelected}
             className={cn("min-w-[160px]", savingAll && "pointer-events-none")}
+            data-testid="accept-all-button"
           >
             {savingAll ? <Loader2 className="size-4 animate-spin" /> : null}
             Zapisz wszystkie

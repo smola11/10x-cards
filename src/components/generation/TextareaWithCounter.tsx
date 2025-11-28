@@ -43,6 +43,7 @@ function TextareaWithCounter({
       <div className="relative">
         <Textarea
           id={textareaId}
+          data-testid="source-text-input"
           value={value}
           placeholder={placeholder}
           disabled={disabled}
