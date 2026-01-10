@@ -1,0 +1,32 @@
+POST http://localhost:3001/api/generations/6/accept
+Content-Type: application/json
+
+{
+  "flashcards": [
+    {
+      "front": "Q1: This is a sample text for generating flashcards. Lorem ipsum dolor sit amet, co…?",
+      "back": "A1: This is a sample text for generating flashcards. Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+      "edited": false
+    },
+    {
+      "front": "Q2: This is a sample text for generating flashcards. Lorem ipsum dolor sit amet, co…?",
+      "back": "A2: This is a sample text for generating flashcards. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed",
+      "edited": false
+    },
+    {
+      "front": "Q3: This is a sample text for generating flashcards. Lorem ipsum dolor sit amet, co…?",
+      "back": "A3: This is a sample text for generating flashcards. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do",
+      "edited": false
+    },
+    {
+      "front": "Q4: This is a sample text for generating flashcards. Lorem ipsum dolor sit amet, co…?",
+      "back": "A4: This is a sample text for generating flashcards. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod",
+      "edited": false
+    },
+    {
+      "front": "Q5: This is a sample text for generating flashcards. Lorem ipsum dolor sit amet, co…?",
+      "back": "A5: This is a sample text for generating flashcards. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor",
+      "edited": false
+    }
+  ]
+}

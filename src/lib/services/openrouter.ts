@@ -75,10 +75,10 @@ const DEFAULT_PROPOSALS_SCHEMA: JsonSchemaSpec = {
   strict: true,
   schema: {
     type: "object",
-    required: ["proposals"],
+    required: ["flashcards"],
     additionalProperties: false,
     properties: {
-      proposals: {
+      flashcards: {
         type: "array",
         minItems: 1,
         maxItems: MAX_PROPOSALS,
@@ -120,6 +120,8 @@ export class OpenRouterApiError extends OpenRouterError {
     message: string,
     public readonly status: number,
     public readonly code?: string,
+    public readonly details?: string,
+    public readonly metadata?: Record<string, unknown>,
     options?: { cause?: unknown }
   ) {
     super(message, options?.cause);
@@ -225,56 +227,130 @@ export class OpenRouterService {
   }
 
   async createChatCompletion(input: CreateChatInput): Promise<StructuredProposals> {
-    if (!input.promptText || input.promptText.trim().length === 0) {
-      throw new OpenRouterError("Prompt text must be a non-empty string");
-    }
+    try {
+      if (!input.promptText || input.promptText.trim().length === 0) {
+        throw new OpenRouterError("Prompt text must be a non-empty string");
+      }
 
-    const model = input.model ?? this.#defaults.model;
-    if (!model) {
-      throw new OpenRouterConfigurationError("No OpenRouter model configured");
-    }
+      const model = input.model ?? this.#defaults.model;
+      if (!model) {
+        throw new OpenRouterConfigurationError("No OpenRouter model configured");
+      }
 
-    const resolvedSystemPrompt = this.#resolveSystemPrompt(input.systemPrompt);
-    const messages = this.#buildMessages(resolvedSystemPrompt, input.promptText);
-    const schema = input.schema ?? this.#defaults.schema ?? DEFAULT_PROPOSALS_SCHEMA;
-    const responseFormat = schema ? this.#buildResponseFormat(schema) : undefined;
-    const params = this.#mergeParams(input.params);
+      const resolvedSystemPrompt = this.#resolveSystemPrompt(input.systemPrompt);
+      const messages = this.#buildMessages(resolvedSystemPrompt, input.promptText);
+      const schema = input.schema ?? this.#defaults.schema ?? DEFAULT_PROPOSALS_SCHEMA;
+      const responseFormat = schema ? this.#buildResponseFormat(schema) : undefined;
+      const params = this.#mergeParams(input.params);
 
-    const payload: OpenRouterChatCompletionRequest = {
-      model,
-      messages,
-      ...params,
-      ...(responseFormat ? { response_format: responseFormat } : {}),
-    };
+      const payload: OpenRouterChatCompletionRequest = {
+        model,
+        messages,
+        ...params,
+        ...(responseFormat ? { response_format: responseFormat } : {}),
+      };
 
-    const response = await this.#request<OpenRouterChatCompletionResponse>(payload, {
-      signal: input.signal,
-      timeoutMs: input.timeoutMs,
-    });
-
-    const choice = response.choices[0];
-    if (!choice || !choice.message) {
-      throw new OpenRouterApiError("OpenRouter response missing choices", 502, undefined, {
-        cause: response,
+      // eslint-disable-next-line no-console
+      console.log("[OpenRouter] Creating chat completion", {
+        model,
+        promptLength: input.promptText.length,
+        hasSystemPrompt: !!resolvedSystemPrompt,
+        hasSchema: !!schema,
       });
-    }
 
-    const rawContent = this.#extractMessageContent(choice.message.content);
-    if (!rawContent) {
-      throw new OpenRouterApiError("OpenRouter returned empty content", 502, undefined, {
-        cause: response,
+      const response = await this.#request<OpenRouterChatCompletionResponse>(payload, {
+        signal: input.signal,
+        timeoutMs: input.timeoutMs,
       });
+
+      const choice = response.choices[0];
+      if (!choice || !choice.message) {
+        const error = new OpenRouterApiError(
+          "OpenRouter response missing choices",
+          502,
+          "missing_choices",
+          undefined,
+          {
+            responseId: response.id,
+            model: response.model,
+            choicesCount: response.choices?.length ?? 0,
+          },
+          {
+            cause: response,
+          }
+        );
+        // eslint-disable-next-line no-console
+        console.error("[OpenRouter] Response missing choices", {
+          responseId: response.id,
+          model: response.model,
+          choicesCount: response.choices?.length ?? 0,
+        });
+        throw error;
+      }
+
+      const rawContent = this.#extractMessageContent(choice.message.content);
+      if (!rawContent) {
+        const error = new OpenRouterApiError(
+          "OpenRouter returned empty content",
+          502,
+          "empty_content",
+          undefined,
+          {
+            responseId: response.id,
+            model: response.model,
+            finishReason: choice.finish_reason,
+          },
+          {
+            cause: response,
+          }
+        );
+        // eslint-disable-next-line no-console
+        console.error("[OpenRouter] Empty content returned", {
+          responseId: response.id,
+          model: response.model,
+          finishReason: choice.finish_reason,
+        });
+        throw error;
+      }
+
+      const parsed = this.#parseStructured(rawContent);
+      const proposals = this.#validateProposals(parsed);
+      const sanitized = this.#coerceAndClamp(proposals);
+
+      // eslint-disable-next-line no-console
+      console.log("[OpenRouter] Chat completion successful", {
+        model: response.model ?? model,
+        proposalsCount: sanitized.length,
+      });
+
+      return {
+        proposals: sanitized,
+        usedModel: response.model ?? model,
+        raw: response,
+      };
+    } catch (error) {
+      const logData: Record<string, unknown> = {
+        error,
+        errorName: error instanceof Error ? error.name : "Unknown",
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorType: error instanceof OpenRouterError ? "OpenRouterError" : typeof error,
+        promptLength: input.promptText?.length,
+        model: input.model ?? this.#defaults.model,
+      };
+
+      if (error instanceof OpenRouterApiError) {
+        logData.status = error.status;
+        logData.code = error.code;
+      }
+
+      if (error instanceof Error && error.cause) {
+        logData.cause = error.cause;
+      }
+
+      // eslint-disable-next-line no-console
+      console.error("[OpenRouter] createChatCompletion failed", logData);
+      throw error;
     }
-
-    const parsed = this.#parseStructured(rawContent);
-    const proposals = this.#validateProposals(parsed);
-    const sanitized = this.#coerceAndClamp(proposals);
-
-    return {
-      proposals: sanitized,
-      usedModel: response.model ?? model,
-      raw: response,
-    };
   }
 
   async streamChatCompletion(
@@ -353,32 +429,70 @@ export class OpenRouterService {
           signal: controller.signal,
         };
 
+        // eslint-disable-next-line no-console
+        console.log(`[OpenRouter] Request attempt ${attempt}/${maxAttempts}`, {
+          url,
+          model: payload.model,
+          messagesCount: payload.messages.length,
+          timeout: timeoutMs,
+        });
+
         const response = await this.#fetch(url, init);
 
         if (response.ok) {
           const data = (await response.json()) as T;
-          cleanupTimer(timeoutId);
-          abortCleanup();
+          // eslint-disable-next-line no-console
+          console.log(`[OpenRouter] Request successful`, {
+            attempt,
+            status: response.status,
+          });
           return data;
         }
 
         const bodyText = await safeReadBody(response);
         const parsedBody = parseMaybeJson(bodyText);
-        const code =
-          typeof parsedBody === "object" && parsedBody && "error" in parsedBody
-            ? (parsedBody as Record<string, unknown>).error
-            : undefined;
-        const message =
-          deriveErrorMessage(response.status, parsedBody) ?? `OpenRouter request failed with status ${response.status}`;
-        const error = new OpenRouterApiError(message, response.status, typeof code === "string" ? code : undefined, {
-          cause: parsedBody ?? bodyText,
-        });
+        const parsedError = parseOpenRouterError(response.status, parsedBody);
+        const error = new OpenRouterApiError(
+          parsedError.message,
+          response.status,
+          parsedError.code,
+          parsedError.details,
+          parsedError.metadata,
+          {
+            cause: parsedBody ?? bodyText,
+          }
+        );
         lastError = error;
+
+        // eslint-disable-next-line no-console
+        console.error(`[OpenRouter] Request failed with HTTP error`, {
+          attempt,
+          status: response.status,
+          code: parsedError.code,
+          message: parsedError.message,
+          details: parsedError.details,
+          metadata: parsedError.metadata,
+          bodyPreview: bodyText.slice(0, 500),
+          headers: Object.fromEntries(response.headers.entries()),
+        });
 
         const retryable = shouldRetry(response.status, attempt, maxAttempts);
         if (!retryable) {
+          // eslint-disable-next-line no-console
+          console.error(`[OpenRouter] Request not retryable`, {
+            status: response.status,
+            attempt,
+            maxAttempts,
+          });
           throw error;
         }
+
+        // eslint-disable-next-line no-console
+        console.warn(`[OpenRouter] Request will be retried`, {
+          attempt,
+          maxAttempts,
+          status: response.status,
+        });
 
         shouldRetryRequest = true;
         retryDelayMs = parseRetryAfter(response.headers.get("retry-after")) ?? computeBackoff(attempt);
@@ -393,6 +507,12 @@ export class OpenRouterService {
               ? error
               : (timeoutError ?? new OpenRouterTimeoutError("Request timed out"));
           lastError = effectiveError;
+          // eslint-disable-next-line no-console
+          console.error(`[OpenRouter] Request timeout`, {
+            attempt,
+            timeoutMs,
+            error: effectiveError.message,
+          });
           const retryable = shouldRetry(408, attempt, maxAttempts);
           if (!retryable) {
             throw effectiveError;
@@ -400,8 +520,11 @@ export class OpenRouterService {
           shouldRetryRequest = true;
           retryDelayMs = computeBackoff(attempt);
         } else if (isAbortError(error)) {
-          cleanupTimer(timeoutId);
-          abortCleanup();
+          // eslint-disable-next-line no-console
+          console.error(`[OpenRouter] Request aborted`, {
+            attempt,
+            reason,
+          });
           throw new OpenRouterError("Request aborted", error);
         } else if (error instanceof OpenRouterApiError) {
           lastError = error;
@@ -413,6 +536,14 @@ export class OpenRouterService {
           retryDelayMs = retryDelayMs ?? computeBackoff(attempt);
         } else {
           lastError = error;
+          // eslint-disable-next-line no-console
+          console.error(`[OpenRouter] Unexpected error during request`, {
+            attempt,
+            error,
+            errorType: typeof error,
+            errorName: error instanceof Error ? error.name : "Unknown",
+            errorMessage: error instanceof Error ? error.message : String(error),
+          });
           const retryable = shouldRetry(500, attempt, maxAttempts);
           if (!retryable) {
             throw error as Error;
@@ -426,12 +557,26 @@ export class OpenRouterService {
       }
 
       if (shouldRetryRequest) {
-        await delay(retryDelayMs ?? computeBackoff(attempt));
+        const delayTime = retryDelayMs ?? computeBackoff(attempt);
+        // eslint-disable-next-line no-console
+        console.log(`[OpenRouter] Retrying after ${delayTime}ms`, {
+          attempt,
+          maxAttempts,
+        });
+        await delay(delayTime);
         continue;
       }
 
       break;
     }
+
+    // eslint-disable-next-line no-console
+    console.error(`[OpenRouter] Request failed after all attempts`, {
+      maxAttempts,
+      lastError,
+      lastErrorType: lastError instanceof Error ? lastError.name : typeof lastError,
+      lastErrorMessage: lastError instanceof Error ? lastError.message : String(lastError),
+    });
 
     if (lastError instanceof Error) {
       throw lastError;
@@ -488,6 +633,14 @@ export class OpenRouterService {
       }
     }
 
+    // eslint-disable-next-line no-console
+    console.error("[OpenRouter] Failed to parse response as JSON", {
+      contentPreview: content.slice(0, 500),
+      contentLength: content.length,
+      directParseError: direct.error instanceof Error ? direct.error.message : String(direct.error),
+      extractedBlock: extracted ? extracted.slice(0, 200) : null,
+    });
+
     throw new OpenRouterError(
       "Failed to parse OpenRouter response as JSON",
       direct.error ?? new Error("Unknown parse error")
@@ -496,30 +649,67 @@ export class OpenRouterService {
 
   #validateProposals(parsed: unknown): { front: string; back: string }[] {
     if (!parsed || typeof parsed !== "object") {
+      // eslint-disable-next-line no-console
+      console.error("[OpenRouter] Parsed response is not an object", {
+        parsedType: typeof parsed,
+        parsed,
+      });
       throw new OpenRouterError("Parsed response is not an object");
     }
 
-    const proposals = (parsed as Record<string, unknown>).proposals;
+    const proposals = (parsed as Record<string, unknown>).flashcards;
     if (!Array.isArray(proposals)) {
+      // eslint-disable-next-line no-console
+      console.error("[OpenRouter] Parsed response does not contain proposals array", {
+        parsedKeys: Object.keys(parsed),
+        proposalsType: typeof proposals,
+        parsed,
+      });
       throw new OpenRouterError("Parsed response does not contain proposals array");
     }
 
     const validated = proposals.map((item, index) => {
       if (!item || typeof item !== "object") {
+        // eslint-disable-next-line no-console
+        console.error("[OpenRouter] Proposal validation failed", {
+          index,
+          reason: "not an object",
+          itemType: typeof item,
+          item,
+        });
         throw new OpenRouterError(`Proposal at index ${index} is not an object`);
       }
       const front = (item as Record<string, unknown>).front;
       const back = (item as Record<string, unknown>).back;
       if (typeof front !== "string" || front.trim().length === 0) {
+        // eslint-disable-next-line no-console
+        console.error("[OpenRouter] Proposal validation failed", {
+          index,
+          reason: "invalid front value",
+          frontType: typeof front,
+          front,
+        });
         throw new OpenRouterError(`Proposal at index ${index} has invalid front value`);
       }
       if (typeof back !== "string" || back.trim().length === 0) {
+        // eslint-disable-next-line no-console
+        console.error("[OpenRouter] Proposal validation failed", {
+          index,
+          reason: "invalid back value",
+          backType: typeof back,
+          back,
+        });
         throw new OpenRouterError(`Proposal at index ${index} has invalid back value`);
       }
       return { front, back };
     });
 
     if (validated.length === 0) {
+      // eslint-disable-next-line no-console
+      console.error("[OpenRouter] No valid proposals returned", {
+        proposalsLength: proposals.length,
+        proposals,
+      });
       throw new OpenRouterError("No valid proposals returned by OpenRouter");
     }
 
@@ -720,4 +910,94 @@ function isAbortError(error: unknown): boolean {
   return error instanceof DOMException
     ? error.name === "AbortError"
     : (error as { name?: string }).name === "AbortError";
+}
+
+interface ParsedOpenRouterError {
+  message: string;
+  code?: string;
+  details?: string;
+  metadata?: Record<string, unknown>;
+}
+
+function parseOpenRouterError(status: number, body: unknown): ParsedOpenRouterError {
+  const result: ParsedOpenRouterError = {
+    message: `OpenRouter request failed with status ${status}`,
+  };
+
+  if (!body || typeof body !== "object") {
+    result.message = deriveErrorMessage(status, body) ?? result.message;
+    return result;
+  }
+
+  const record = body as Record<string, unknown>;
+  const errorField = record.error;
+
+  // Handle error as string (simple error code)
+  if (typeof errorField === "string" && errorField.trim().length > 0) {
+    result.code = errorField.trim();
+    // Try to get a better message based on status code
+    const defaultMessage = deriveErrorMessage(status, undefined);
+    result.message = defaultMessage ?? result.code;
+    return result;
+  }
+
+  // Handle error as object (structured error)
+  if (errorField && typeof errorField === "object") {
+    const errorObj = errorField as Record<string, unknown>;
+
+    // Extract code
+    if (typeof errorObj.code === "string" && errorObj.code.trim().length > 0) {
+      result.code = errorObj.code.trim();
+    } else if (typeof errorObj.type === "string" && errorObj.type.trim().length > 0) {
+      result.code = errorObj.type.trim();
+    }
+
+    // Extract message
+    if (typeof errorObj.message === "string" && errorObj.message.trim().length > 0) {
+      result.message = errorObj.message.trim();
+    } else {
+      result.message = deriveErrorMessage(status, body) ?? result.message;
+    }
+
+    // Extract details
+    if (typeof errorObj.details === "string" && errorObj.details.trim().length > 0) {
+      result.details = errorObj.details.trim();
+    } else if (typeof errorObj.detail === "string" && errorObj.detail.trim().length > 0) {
+      result.details = errorObj.detail.trim();
+    }
+
+    // Collect additional metadata
+    const metadata: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(errorObj)) {
+      if (!["code", "type", "message", "details", "detail"].includes(key)) {
+        metadata[key] = value;
+      }
+    }
+    if (Object.keys(metadata).length > 0) {
+      result.metadata = metadata;
+    }
+
+    return result;
+  }
+
+  // Fallback: try to extract message from top-level fields
+  const topLevelMessage = record.message ?? record.detail ?? record.reason;
+  if (typeof topLevelMessage === "string" && topLevelMessage.trim().length > 0) {
+    result.message = topLevelMessage.trim();
+  } else {
+    result.message = deriveErrorMessage(status, body) ?? result.message;
+  }
+
+  // Collect top-level metadata
+  const metadata: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(record)) {
+    if (!["error", "message", "detail", "reason"].includes(key)) {
+      metadata[key] = value;
+    }
+  }
+  if (Object.keys(metadata).length > 0) {
+    result.metadata = metadata;
+  }
+
+  return result;
 }

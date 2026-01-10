@@ -237,12 +237,6 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? "Logowanie…" : "Zaloguj się"}
             </Button>
-            {redirectTo ? (
-              <p className="text-center text-xs text-muted-foreground">
-                Po udanym logowaniu wrócisz do:{" "}
-                <span className="font-medium text-foreground">{sanitizeRedirect(redirectTo)}</span>
-              </p>
-            ) : null}
           </CardFooter>
         </Card>
       </form>

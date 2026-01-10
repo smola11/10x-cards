@@ -49,6 +49,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
     (pathname === "/" || pathname.startsWith("/flashcards") || pathname.startsWith("/generations"));
 
   if (requiresAuth && !context.locals.session) {
+    // Allow E2E tests to bypass auth with a specific cookie in DEV/Test mode
+    if (import.meta.env.DEV && context.cookies.get("e2e-bypass-auth")?.value === "true") {
+      return next();
+    }
+
     const redirectParam = encodeURIComponent(pathname + (url.search ? url.search : ""));
     return Response.redirect(new URL(`/auth/login?redirect=${redirectParam}`, url), 302);
   }

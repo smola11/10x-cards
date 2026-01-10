@@ -91,13 +91,32 @@ export const POST: APIRoute = async (context) => {
   let proposals: { front: string; back: string }[] = [];
   let usedModel = model ?? "unknown";
   let durationMs = 0;
-  console.log("Generating proposals for prompt:");
+  // eslint-disable-next-line no-console
+  console.log("Generating proposals for prompt:", {
+    promptLength: promptText.length,
+    model: model ?? "default",
+    userId,
+  });
   try {
     const res = await generateProposals({ promptText, model });
     proposals = res.proposals;
     usedModel = res.usedModel;
     durationMs = res.durationMs;
-  } catch {
+    // eslint-disable-next-line no-console
+    console.log("Generation successful:", {
+      proposalsCount: proposals.length,
+      usedModel,
+      durationMs,
+      userId,
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Generation failed:", {
+      error,
+      errorName: error instanceof Error ? error.name : "Unknown",
+      errorMessage: error instanceof Error ? error.message : String(error),
+      errorStack: error instanceof Error ? error.stack : undefined,
+    });
     return json({ error: "Generation failed" }, 500);
   }
 
@@ -117,6 +136,7 @@ export const POST: APIRoute = async (context) => {
     .single<Tables<"generations">>();
 
   if (dbError || !inserted) {
+    // eslint-disable-next-line no-console
     console.error("Database insert failed", dbError);
     return json({ error: "Database insert failed" }, 500);
   }
