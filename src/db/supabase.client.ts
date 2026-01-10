@@ -10,4 +10,5 @@ export type SupabaseClient = ReturnType<typeof createClient<Database>>;
 export const supabaseClient = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 // Local development default user id used when auth is not enforced
-export const DEFAULT_USER_ID = "00000000-0000-0000-0000-000000000000";
+// In E2E tests, this can be overridden with E2E_USER_ID environment variable
+export const DEFAULT_USER_ID = import.meta.env.E2E_USER_ID ?? "4b156f43-6dfa-4641-8555-4315eb28765b";

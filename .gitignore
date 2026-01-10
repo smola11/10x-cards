@@ -17,6 +17,17 @@ pnpm-debug.log*
 .env
 .env.production
 .env.test
+.env.local
+.env.*.local
+
+# test artifacts / reports (can contain request payloads, screenshots, traces)
+playwright-report/
+test-results/
+coverage/
+.nyc_output/
+
+# Cursor personal prompts (can contain pasted secrets)
+.cursor/prompts/
 
 # macOS-specific files
 .DS_Store
