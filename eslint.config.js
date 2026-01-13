@@ -1,6 +1,5 @@
 import { includeIgnoreFile } from "@eslint/compat";
 import eslint from "@eslint/js";
-import eslintPluginPrettier from "eslint-plugin-prettier/recommended";
 import eslintPluginAstro from "eslint-plugin-astro";
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import pluginReact from "eslint-plugin-react";
@@ -52,6 +51,7 @@ const reactConfig = tseslint.config({
   rules: {
     ...eslintPluginReactHooks.configs.recommended.rules,
     "react/react-in-jsx-scope": "off",
+    "react/prop-types": "off", // Using TypeScript for type checking
     "react-compiler/react-compiler": "error",
   },
 });
@@ -61,6 +61,5 @@ export default tseslint.config(
   baseConfig,
   jsxA11yConfig,
   reactConfig,
-  eslintPluginAstro.configs["flat/recommended"],
-  eslintPluginPrettier
+  eslintPluginAstro.configs["flat/recommended"]
 );
