@@ -71,18 +71,18 @@ Open your browser to `http://localhost:3000` to view the app.
 
 ## Available Scripts
 
-| Command            | Description                    |
-| ------------------ | ------------------------------ |
-| `npm run dev`      | Start Astro development server |
-| `npm run build`    | Build for production           |
-| `npm run preview`  | Preview production build       |
-| `npm run astro`    | Run Astro CLI                  |
-| `npm run lint`     | Run ESLint on all files        |
-| `npm run lint:fix` | Run ESLint and auto-fix        |
-| `npm run format`   | Format code with Prettier      |
-| `npm run test`     | Run Vitest in watch mode       |
-| `npm run test:unit`| Run unit tests once with Vitest|
-| `npm run test:e2e` | Run Playwright E2E tests       |
+| Command             | Description                     |
+| ------------------- | ------------------------------- |
+| `npm run dev`       | Start Astro development server  |
+| `npm run build`     | Build for production            |
+| `npm run preview`   | Preview production build        |
+| `npm run astro`     | Run Astro CLI                   |
+| `npm run lint`      | Run ESLint on all files         |
+| `npm run lint:fix`  | Run ESLint and auto-fix         |
+| `npm run format`    | Format code with Prettier       |
+| `npm run test`      | Run Vitest in watch mode        |
+| `npm run test:unit` | Run unit tests once with Vitest |
+| `npm run test:e2e`  | Run Playwright E2E tests        |
 
 ### Testing
 

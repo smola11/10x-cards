@@ -9,12 +9,14 @@ This workflow runs automatically on every pull request to the `master` branch.
 The workflow consists of three sequential jobs:
 
 #### 1. **Lint** 🔍
+
 - Runs ESLint to check code quality and style
 - Must pass before unit tests run
 - Uses Node.js version from `.nvmrc` file
 - Installs dependencies with `npm ci` for reproducible builds
 
 #### 2. **Unit Tests** 🧪
+
 - Runs after successful linting
 - Executes unit tests with coverage reporting
 - Generates coverage reports in multiple formats:
@@ -25,6 +27,7 @@ The workflow consists of three sequential jobs:
 - Uploads coverage artifacts for 30 days retention
 
 #### 3. **Status Comment** 💬
+
 - Runs only if both lint and unit tests pass
 - Posts a success comment to the PR with:
   - Overall status
@@ -45,6 +48,7 @@ All actions are using the latest major versions (as of January 2026):
 ### Required Permissions
 
 The workflow requires the following permissions:
+
 - `pull-requests: write` - To post comments on pull requests
 
 ### Environment Requirements
@@ -55,6 +59,7 @@ The workflow requires the following permissions:
 ### Coverage Configuration
 
 Coverage is configured in `vitest.config.ts`:
+
 - Provider: `v8` (built-in V8 coverage)
 - Reporters: text, json, json-summary, html
 - Excludes: node_modules, test files, type definitions, config files, mock data
@@ -81,15 +86,17 @@ npm run test:unit -- --coverage
 ### Troubleshooting
 
 **Coverage not showing in PR comment:**
+
 - Ensure `json-summary` reporter is configured in `vitest.config.ts`
 - Check that tests are actually running and generating coverage
 - Verify the coverage artifact was uploaded successfully
 
 **Workflow not triggering:**
+
 - Ensure the PR targets the `master` branch
 - Check repository settings for Actions permissions
 
 **Permission errors on PR comments:**
+
 - Verify the workflow has `pull-requests: write` permission
 - Check repository Actions settings allow workflows to create comments
-
