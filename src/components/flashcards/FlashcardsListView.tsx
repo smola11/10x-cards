@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listFlashcards } from "@/lib/api/flashcards.client";
 import { ApiError } from "@/lib/api/generations.client";
-import { cn } from "@/lib/utils";
-import type { FlashcardDTO, FlashcardOrigin, FlashcardsListResponse, SortOrder } from "@/types";
+import type { FlashcardOrigin, FlashcardsListResponse, SortOrder } from "@/types";
 
 type OriginFilter = "all" | FlashcardOrigin;
 

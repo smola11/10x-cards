@@ -8,8 +8,8 @@ interface Props {
 const { title = "10x Astro Starter" } = Astro.props;
 const session = Astro.locals.session;
 const baseHeaderClass = "w-full border-b border-border/40 bg-background/60 backdrop-blur";
-const loggedHeaderClass = session ? baseHeaderClass : baseHeaderClass + " hidden";
-const guestHeaderClass = !session ? baseHeaderClass : baseHeaderClass + " hidden";
+const loggedHeaderClass = session ? baseHeaderClass : `${baseHeaderClass} hidden`;
+const guestHeaderClass = session ? `${baseHeaderClass} hidden` : baseHeaderClass;
 ---
 
 <!doctype html>
@@ -24,16 +24,10 @@ const guestHeaderClass = !session ? baseHeaderClass : baseHeaderClass + " hidden
   <body>
     <header class={loggedHeaderClass}>
       <nav class="mx-auto flex max-w-6xl items-center justify-end gap-2 px-4 py-3">
-        <a
-          href="/"
-          class="rounded-md border border-border/60 px-3 py-1.5 text-sm hover:bg-muted/50"
-        >
+        <a href="/" class="rounded-md border border-border/60 px-3 py-1.5 text-sm hover:bg-muted/50">
           Generuj fiszki
         </a>
-        <a
-          href="/flashcards"
-          class="rounded-md border border-border/60 px-3 py-1.5 text-sm hover:bg-muted/50"
-        >
+        <a href="/flashcards" class="rounded-md border border-border/60 px-3 py-1.5 text-sm hover:bg-muted/50">
           Zapisane fiszki
         </a>
         <button id="logout-btn" class="rounded-md border border-border/60 px-3 py-1.5 text-sm hover:bg-muted/50">
@@ -43,27 +37,30 @@ const guestHeaderClass = !session ? baseHeaderClass : baseHeaderClass + " hidden
     </header>
     <header class={guestHeaderClass}>
       <nav class="mx-auto flex max-w-6xl items-center justify-end gap-2 px-4 py-3">
-        <a href="/auth/login" class="rounded-md border border-border/60 px-3 py-1.5 text-sm hover:bg-muted/50">Zaloguj</a>
-        <a href="/auth/register" class="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:opacity-90">Rejestracja</a>
+        <a href="/auth/login" class="rounded-md border border-border/60 px-3 py-1.5 text-sm hover:bg-muted/50"
+          >Zaloguj</a
+        >
+        <a
+          href="/auth/register"
+          class="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:opacity-90">Rejestracja</a
+        >
       </nav>
     </header>
     <slot />
-    {session ? (
-      <script is:inline>
-        const btn = document.getElementById("logout-btn");
-        if (btn) {
-          btn.addEventListener("click", async () => {
-            btn.setAttribute("disabled", "true");
-            try {
-              await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
-            } catch {
-              void 0;
-            }
-            window.location.assign("/auth/login");
-          });
-        }
-      </script>
-    ) : null}
+    <script>
+      const btn = document.getElementById("logout-btn");
+      if (btn) {
+        btn.addEventListener("click", async () => {
+          btn.setAttribute("disabled", "true");
+          try {
+            await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+          } catch (error) {
+            void error;
+          }
+          window.location.assign("/auth/login");
+        });
+      }
+    </script>
   </body>
 </html>
 

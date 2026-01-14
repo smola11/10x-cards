@@ -17,8 +17,11 @@ export const Label = React.forwardRef<HTMLLabelElement, LabelProps>(function Lab
       {...props}
     >
       {children}
-      {isRequired ? <span className="text-destructive" aria-hidden="true">*</span> : null}
+      {isRequired ? (
+        <span className="text-destructive" aria-hidden="true">
+          *
+        </span>
+      ) : null}
     </label>
   );
 });
-
