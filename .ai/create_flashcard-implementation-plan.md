@@ -1,9 +1,11 @@
 ## API Endpoint Implementation Plan: Create a manual flashcard (POST /api/flashcards)
 
 ### 1. Przegląd punktu końcowego
+
 Tworzy manualną fiszkę przypisaną do bieżącego użytkownika. Serwer ustawia `origin = 'manual'` i wymusza `generationId = null` (pole nie jest akceptowane w żądaniu). Zwraca nowo utworzoną fiszkę w formacie DTO. Sukces: 201 Created.
 
 ### 2. Szczegóły żądania
+
 - **Metoda HTTP**: POST
 - **Ścieżka**: `/api/flashcards`
 - **Nagłówki**:
@@ -15,6 +17,7 @@ Tworzy manualną fiszkę przypisaną do bieżącego użytkownika. Serwer ustawia
     - `back`: string, długość 1..500
   - **Zakazane**: wszelkie inne pola, w szczególności `generationId`, `origin`, `id`, `userId`, `createdAt`, `updatedAt`
 - **Request Body (przykład)**:
+
 ```json
 {
   "front": "What is TCP?",
@@ -23,13 +26,16 @@ Tworzy manualną fiszkę przypisaną do bieżącego użytkownika. Serwer ustawia
 ```
 
 ### 3. Wykorzystywane typy
+
 - `CreateManualFlashcardCommand` (request): z `src/types.ts`
   - `{ front: string; back: string }`
 - `CreateManualFlashcardResponse` (response): alias `FlashcardDTO` z `src/types.ts`
   - `{ id, front, back, origin, generationId, createdAt, updatedAt }`
 
 ### 4. Szczegóły odpowiedzi
+
 - **201 Created** z JSON:
+
 ```json
 {
   "id": 123,
@@ -41,6 +47,7 @@ Tworzy manualną fiszkę przypisaną do bieżącego użytkownika. Serwer ustawia
   "updatedAt": "2025-10-14T13:20:00.000Z"
 }
 ```
+
 - **Błędy**:
   - 400 Bad Request: nieprawidłowy JSON; obecne pola zabronione/nieznane (np. `generationId`, `origin`)
   - 401 Unauthorized: brak użytkownika w sesji (poza DEV fallback)
@@ -48,6 +55,7 @@ Tworzy manualną fiszkę przypisaną do bieżącego użytkownika. Serwer ustawia
   - 500 Internal Server Error: błąd serwera/DB
 
 ### 5. Przepływ danych
+
 1. Klient wysyła POST `/api/flashcards` z JSON `{ front, back }`.
 2. Astro API route (`src/pages/api/flashcards.ts`) pobiera `supabase` z `context.locals.supabase` i rozwiązuje `userId` z `supabase.auth.getUser()` (DEV fallback do `DEFAULT_USER_ID`).
 3. Body jest parsowane i walidowane przez Zod schema (ścisła, `strict()` → odrzuca nieznane pola; reguły długości).
@@ -55,10 +63,12 @@ Tworzy manualną fiszkę przypisaną do bieżącego użytkownika. Serwer ustawia
 5. API zwraca 201 z obiektem DTO.
 
 Uwagi DB/RLS:
+
 - DB model: `flashcards(origin enum, generation_id nullable)` z regułą spójności „manual ⇒ generation_id IS NULL”.
 - Migrations w repo aktualnie wyłączają RLS (dev). Plan zakłada tryb owner-only po włączeniu RLS (produkcyjnie) – wymagane `user_id = auth.uid()`.
 
 ### 6. Względy bezpieczeństwa
+
 - **Uwierzytelnianie**: używaj `context.locals.supabase`. W produkcji zwracaj 401 przy braku sesji. W DEV dopuszczalny fallback do `DEFAULT_USER_ID` (jak w istniejącym GET).
 - **Autoryzacja/RLS**: przy włączonym RLS polityka owner-only (insert/select ograniczone do właściciela). W treści INSERT przekaż właściwe `user_id` (z sesji) – zgodne z polityką `WITH CHECK`.
 - **Walidacja/whitelisting**: schema Zod w trybie `strict()` (odrzuca nieznane pola). Nie ufaj polom pochodzącym z klienta (`origin`, `generationId`) – nadpisuj po stronie serwera.
@@ -66,6 +76,7 @@ Uwagi DB/RLS:
 - **Logowanie błędów**: loguj kontekst (userId, payload skrócony) bez treści wrażliwych.
 
 ### 7. Obsługa błędów
+
 - 400 Bad Request:
   - Niepoprawny JSON (`request.json()` rzuca wyjątek)
   - Nieznane/zabronione pola (`ZodError` z `unrecognized_keys`)
@@ -79,18 +90,21 @@ Uwagi DB/RLS:
   - Naruszenie constraint (teoretycznie) – mapuj jako 500 z generycznym komunikatem
 
 Strategia mapowania błędów Zod:
+
 - Parsowanie JSON wyjątek → 400
 - `ZodError`:
   - Jeśli zawiera `unrecognized_keys` → 400
   - W przeciwnym razie (reguły długości itp.) → 422
 
 ### 8. Rozważania dotyczące wydajności
+
 - Pojedynczy insert i pojedynczy select – koszt minimalny.
 - Zwracaj tylko jeden wiersz (`.select('*').single()`).
 - Brak potrzeby transakcji.
 - Indeksy nie są krytyczne dla pojedynczego insertu; istniejące indeksy wspierają późniejsze listowanie.
 
 ### 9. Etapy wdrożenia
+
 1. Walidacja – dodanie schematu Zod
    - Plik: `src/lib/validation/flashcards.ts`
    - Dodaj:
@@ -129,10 +143,9 @@ Strategia mapowania błędów Zod:
    - Zweryfikować, że `insert` przechodzi z `user_id` z sesji.
 
 6. Zgodność ze stackiem i regułami
+
 - Astro API Route (`export const prerender = false`), `APIRoute`, `context.locals.supabase`.
 - Zod do walidacji wejścia (schema w `src/lib/validation`).
 - Logika w serwisie (`src/lib/services`), kontroler cienki.
 - DTO/Command modele z `src/types.ts`.
 - Supabase Client typ z `src/db/supabase.client.ts`.
-
-

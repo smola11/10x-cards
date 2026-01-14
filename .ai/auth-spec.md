@@ -1,4 +1,5 @@
 <!-- b542eb63-6bcc-43db-b138-057774f967b6 16823e41-d9a2-471a-aade-2826c3a4dbe4 -->
+
 # Specyfikacja modułu autentykacji (Supabase Auth + Astro)
 
 ## Kontekst i założenia
@@ -107,7 +108,7 @@
 ### Walidacja wejścia
 
 - API: Zod w istniejących trasach (`generations.ts`, `flashcards.ts`) — bez zmian koncepcyjnych.
-- Formularze: Zod w React (mirroring reguł backendu i supabase constraints). 
+- Formularze: Zod w React (mirroring reguł backendu i supabase constraints).
 
 ### Obsługa wyjątków
 
@@ -159,7 +160,7 @@
 - `SUPABASE_URL`, `SUPABASE_KEY` (już użyte).
 - `AUTH_BYPASS_DEV=true|false` (nowe) — tylko wpływa w `import.meta.env.DEV`.
 - W Supabase Dashboard: `Site URL` ustawiony na URL aplikacji; `Redirect URL` dla resetu hasła na `<site>/auth/reset-password`.
- - W Supabase Dashboard (MVP): wyłączone potwierdzanie adresu email przy rejestracji, aby umożliwić auto-login zgodnie z PRD.
+- W Supabase Dashboard (MVP): wyłączone potwierdzanie adresu email przy rejestracji, aby umożliwić auto-login zgodnie z PRD.
 
 ## Zmiany w istniejącym kodzie (wyszczególnienie)
 
@@ -199,4 +200,5 @@
 - Brak zmian w modelach `public.flashcards`/`public.generations`.
 
 ---
+
 Po akceptacji: zapiszę specyfikację do pliku `.ai/auth-spec.md` i przygotuję minimalne szkielety stron i komponentów bez wprowadzania zmian łamiących istniejące funkcje.

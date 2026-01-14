@@ -1,10 +1,12 @@
 # REST API Plan
 
 ## 1. Resources
+
 - Flashcards — table: `public.flashcards`
 - Generations — table: `public.generations`
 
 Implementation notes:
+
 - Runtime: Astro 5 API routes under `src/pages/api`.
 - DB/Auth: Supabase with RLS enabled; all row access scoped to `auth.uid()`.
 - JSON uses camelCase; DB columns mapped server-side.
@@ -14,6 +16,7 @@ Implementation notes:
 ### 2.1 Flashcards
 
 #### List flashcards
+
 - Method: GET
 - Path: `/api/flashcards`
 - Description: Paginated list of the caller’s flashcards, newest first.
@@ -26,6 +29,7 @@ Implementation notes:
   - `generationId` (number, optional; filter by generation)
 - Request JSON: none
 - Response JSON:
+
 ```json
 {
   "items": [
@@ -47,20 +51,24 @@ Implementation notes:
   "hasPrevPage": false
 }
 ```
+
 - Success: 200 OK
 - Errors:
   - 400 Bad Request: invalid query params
   - 401 Unauthorized
 
 Notes:
+
 - Backed by index `(user_id, created_at DESC)`.
 - Cursor encodes `(created_at,id)` for stable pagination.
 
 #### Get a flashcard
+
 - Method: GET
 - Path: `/api/flashcards/{id}`
 - Description: Returns one flashcard owned by the caller.
 - Response JSON:
+
 ```json
 {
   "id": 123,
@@ -72,23 +80,28 @@ Notes:
   "updatedAt": "2025-10-14T13:20:00.000Z"
 }
 ```
+
 - Success: 200 OK
 - Errors:
   - 401 Unauthorized
   - 404 Not Found
 
 #### Create a manual flashcard
+
 - Method: POST
 - Path: `/api/flashcards`
 - Description: Creates a manual flashcard (no `generationId`).
 - Request JSON:
+
 ```json
 {
   "front": "string (1..200 chars)",
   "back": "string (1..500 chars)"
 }
 ```
+
 - Response JSON:
+
 ```json
 {
   "id": 123,
@@ -100,6 +113,7 @@ Notes:
   "updatedAt": "2025-10-14T13:20:00.000Z"
 }
 ```
+
 - Success: 201 Created
 - Errors:
   - 400 Bad Request: extra/forbidden fields (e.g., `generationId`), invalid JSON
@@ -107,19 +121,23 @@ Notes:
   - 422 Unprocessable Entity: length validation fails
 
 Notes:
+
 - Server sets `origin = 'manual'`. `generationId` is rejected for manual creates.
 
 #### Update a flashcard
+
 - Method: PATCH
 - Path: `/api/flashcards/{id}`
 - Description: Updates `front` and/or `back`. `origin` is immutable post-creation.
 - Request JSON:
+
 ```json
 {
   "front": "string (1..200 chars, optional)",
   "back": "string (1..500 chars, optional)"
 }
 ```
+
 - Response JSON: same as GET one
 - Success: 200 OK
 - Errors:
@@ -129,6 +147,7 @@ Notes:
   - 422 Unprocessable Entity: length validation fails
 
 #### Delete a flashcard
+
 - Method: DELETE
 - Path: `/api/flashcards/{id}`
 - Description: Deletes a flashcard.
@@ -143,16 +162,20 @@ Notes:
 ### 2.3 Generations (AI proposals + acceptance)
 
 #### Create generation and get AI proposals
+
 - Method: POST
 - Path: `/api/generations`
 - Description: Validates `promptText`, calls LLM via OpenRouter, measures duration, persists a `generations` row, and returns proposals without persisting them as flashcards yet.
 - Request JSON:
+
 ```json
 {
   "promptText": "string (1000..10000 chars)"
 }
 ```
+
 - Response JSON:
+
 ```json
 {
   "generation": {
@@ -161,15 +184,14 @@ Notes:
     "acceptedUneditedCount": null,
     "acceptedEditedCount": null,
     "model": "provider/model",
-    "generationDuration": 812, 
+    "generationDuration": 812,
     "createdAt": "2025-10-14T13:20:00.000Z",
     "updatedAt": "2025-10-14T13:20:00.000Z"
   },
-  "proposals": [
-    { "front": "string (1..200)", "back": "string (1..500)" }
-  ]
+  "proposals": [{ "front": "string (1..200)", "back": "string (1..500)" }]
 }
 ```
+
 - Success: 201 Created
 - Errors:
   - 400 Bad Request: invalid JSON
@@ -180,14 +202,17 @@ Notes:
   - 500 Internal Server Error
 
 Notes:
+
 - Persists: `user_id`, `total_count`, `model`, `generation_duration`, timestamps.
 - Does NOT persist proposals; they are returned to the client for review.
 
 #### Accept selected proposals and persist flashcards
+
 - Method: POST
 - Path: `/api/generations/{id}/accept`
 - Description: Persists selected proposals as flashcards; sets `origin` per item; updates generation acceptance counters atomically.
 - Request JSON:
+
 ```json
 {
   "flashcards": [
@@ -199,7 +224,9 @@ Notes:
   ]
 }
 ```
+
 - Response JSON:
+
 ```json
 {
   "created": [
@@ -207,7 +234,7 @@ Notes:
       "id": 789,
       "front": "string",
       "back": "string",
-      "origin": "ai-full",   // or "ai-edited" if edited=true
+      "origin": "ai-full", // or "ai-edited" if edited=true
       "generationId": 456,
       "createdAt": "2025-10-14T13:20:00.000Z",
       "updatedAt": "2025-10-14T13:20:00.000Z"
@@ -223,6 +250,7 @@ Notes:
   }
 }
 ```
+
 - Success: 201 Created
 - Errors:
   - 400 Bad Request: empty list; invalid fields
@@ -234,10 +262,12 @@ Notes:
   - 500 Internal Server Error
 
 Notes:
+
 - For each item: `origin = 'ai-edited'` if `edited=true`, otherwise `'ai-full'`.
 - Enforces DB CHECK: `origin != 'manual'` implies `generationId` present.
 
 #### List generations
+
 - Method: GET
 - Path: `/api/generations`
 - Description: Paginated list of the caller’s generations with acceptance counters.
@@ -246,6 +276,7 @@ Notes:
   - `cursor` (opaque)
   - `sort` (default `created_at:desc`)
 - Response JSON:
+
 ```json
 {
   "items": [
@@ -263,18 +294,21 @@ Notes:
   "nextCursor": "opaque-or-null"
 }
 ```
+
 - Success: 200 OK
 - Errors:
   - 400 Bad Request
   - 401 Unauthorized
 
 #### Get a generation
+
 - Method: GET
 - Path: `/api/generations/{id}`
 - Description: Returns one generation; optionally include associated flashcards for convenience.
 - Query params:
   - `includeFlashcards` (boolean, default false)
 - Response JSON (when `includeFlashcards=true`):
+
 ```json
 {
   "generation": {
@@ -288,16 +322,26 @@ Notes:
     "updatedAt": "2025-10-14T13:25:12.000Z"
   },
   "flashcards": [
-    { "id": 789, "front": "string", "back": "string", "origin": "ai-full", "generationId": 456, "createdAt": "...", "updatedAt": "..." }
+    {
+      "id": 789,
+      "front": "string",
+      "back": "string",
+      "origin": "ai-full",
+      "generationId": 456,
+      "createdAt": "...",
+      "updatedAt": "..."
+    }
   ]
 }
 ```
+
 - Success: 200 OK
 - Errors:
   - 401 Unauthorized
   - 404 Not Found
 
 Notes:
+
 - Joins leverage index on `flashcards(generation_id)`.
 
 ---
@@ -305,12 +349,14 @@ Notes:
 ### 2.5 Stats
 
 #### Generation acceptance summary
+
 - Method: GET
 - Path: `/api/stats/generations`
 - Description: Aggregates per-user generation acceptance metrics.
 - Query params:
   - `since` (ISO timestamp, optional)
 - Response JSON:
+
 ```json
 {
   "totalGenerations": 12,
@@ -320,16 +366,19 @@ Notes:
   "acceptanceRate": 0.7083
 }
 ```
+
 - Success: 200 OK
 - Errors:
   - 401 Unauthorized
   - 400 Bad Request
 
 #### Flashcards breakdown
+
 - Method: GET
 - Path: `/api/stats/flashcards`
 - Description: Count flashcards by origin.
 - Response JSON:
+
 ```json
 {
   "total": 250,
@@ -340,6 +389,7 @@ Notes:
   }
 }
 ```
+
 - Success: 200 OK
 - Errors:
   - 401 Unauthorized
@@ -361,16 +411,19 @@ Notes:
   - This API assumes authenticated requests for protected endpoints.
 
 Security headers:
+
 - CORS: restrict origins to deployment domains.
 - Content-Type: enforce `application/json` for JSON endpoints.
 - Cache: no-store for auth-protected data.
 
 Rate limiting (recommended defaults):
+
 - `/api/generations` POST: 10 requests per 10 minutes per user (LLM cost control).
 - Other endpoints: 5 requests/sec burst, 1000/day per user.
 - 429 with `Retry-After` when exceeded.
 
 Secrets:
+
 - Store OpenRouter API key and Supabase service role in server env; never expose to client.
 
 ---
@@ -380,6 +433,7 @@ Secrets:
 ### 4.1 Validation rules
 
 Flashcards (`public.flashcards`):
+
 - `front`: required, 1..200 chars (trimmed).
 - `back`: required, 1..500 chars (trimmed).
 - `origin`: server-controlled:
@@ -391,6 +445,7 @@ Flashcards (`public.flashcards`):
   - `createdAt` default now; `updatedAt` updated by DB trigger on UPDATE.
 
 Generations (`public.generations`):
+
 - `promptText`: required, 1000..10000 chars.
 - `model`: required; allow server default override if missing.
 - `generationDuration`: non-negative (ms).
@@ -400,6 +455,7 @@ Generations (`public.generations`):
   - Reject acceptance if `acceptedUneditedCount + acceptedEditedCount + newAccepted > totalCount`.
 
 Common:
+
 - Reject unknown fields.
 - Enforce JSON schema per endpoint; respond with 422 on validation errors; include per-field messages.
 
@@ -451,5 +507,3 @@ Common:
 - Middleware (`src/middleware/index.ts`) to extract/validate JWT once and attach user to request.
 
 This document defines the REST API surface for the 10x-cards MVP, aligned with the database schema, PRD requirements, and the Astro + Supabase stack.
-
-

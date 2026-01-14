@@ -1,4 +1,5 @@
 <user_journey_analysis>
+
 - Ścieżki użytkownika (wg PRD i specyfikacji):
   - Rejestracja konta (US-001) z automatycznym zalogowaniem i przejściem do strony głównej.
   - Logowanie (US-002) z przekierowaniem do strony głównej po sukcesie.
@@ -24,7 +25,7 @@
   - StronaGlowna/Zalogowany: dostęp do kluczowych funkcji aplikacji.
   - MojeFiszki/SesjaNauki: zarządzanie i nauka fiszek użytkownika.
   - Wylogowanie: kończy sesję i wraca do logowania.
-</user_journey_analysis>
+    </user_journey_analysis>
 
 <mermaid_diagram>
 
@@ -113,5 +114,3 @@ end note
 ```
 
 </mermaid_diagram>
-
-

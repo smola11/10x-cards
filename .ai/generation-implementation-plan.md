@@ -1,11 +1,13 @@
 ## API Endpoint Implementation Plan: POST /api/generations
 
 ### 1. Przegląd punktu końcowego
+
 - Tworzy rekord `generations` na podstawie `promptText`, wywołuje LLM przez OpenRouter, mierzy czas generowania i zwraca propozycje fiszek bez ich utrwalania.
 - Autoryzacja wymagana (powiązanie z `auth.users`).
 - Zgodność z Supabase i regułami Astro (middleware, server endpoints, zod walidacja, services w `src/lib`).
 
 ### 2. Szczegóły żądania
+
 - **Metoda HTTP**: POST
 - **URL**: `/api/generations`
 - **Nagłówki**:
@@ -14,6 +16,7 @@
 - **Parametry**:
   - **Wymagane**: `promptText: string` (długość 1000..10000)
 - **Body (JSON)**:
+
 ```json
 {
   "promptText": "string (1000..10000)"
@@ -21,6 +24,7 @@
 ```
 
 ### 3. Wykorzystywane typy
+
 - Z `src/types.ts`:
   - `CreateGenerationCommand` (wejście): `{ promptText: string }`
   - `ProposalFlashcardDTO` (element odpowiedzi): `{ front: string; back: string }`
@@ -29,8 +33,10 @@
 - Z `src/db/database.types.ts` (typy kolumn tabeli `generations`).
 
 ### 4. Szczegóły odpowiedzi
+
 - **Status**: 201 Created
 - **Body (JSON)** zgodnie z `CreateGenerationResponse`:
+
 ```json
 {
   "generation": {
@@ -43,11 +49,10 @@
     "createdAt": "2025-10-14T13:20:00.000Z",
     "updatedAt": "2025-10-14T13:20:00.000Z"
   },
-  "proposals": [
-    { "front": "string (1..200)", "back": "string (1..500)" }
-  ]
+  "proposals": [{ "front": "string (1..200)", "back": "string (1..500)" }]
 }
 ```
+
 - **Błędy**:
   - 400: nieprawidłowy JSON
   - 401: brak autoryzacji
@@ -57,6 +62,7 @@
   - 500: błąd serwera
 
 ### 5. Przepływ danych
+
 1. Middleware `src/middleware/index.ts` wstrzykuje `supabase` do `context.locals`.
 2. Endpoint `src/pages/api/generations.ts` (server endpoint Astro):
    - Parsuje JSON i waliduje Zod-em (`CreateGenerationCommand` + pole `model?`).
@@ -68,6 +74,7 @@
 3. Brak utrwalenia propozycji fiszek na tym etapie.
 
 ### 6. Względy bezpieczeństwa
+
 - Wymagana autentykacja (401 gdy brak/niepoprawna).
 - Spójność z RLS (chociaż tabela może mieć wyłączone polityki – nadal zapisujemy `user_id`).
 - Walidacja rozmiaru `promptText` przed wywołaniem LLM, aby unikać kosztów i ataków DoS.
@@ -77,6 +84,7 @@
 - Sanitizacja i logowanie błędów bez ujawniania kluczy/sekretów.
 
 ### 7. Obsługa błędów
+
 - 400: JSON.parse/Zod parse fail -> zwrot komunikatu walidacyjnego.
 - 401: brak sesji/`user.id`.
 - 422: `promptText` <1000 lub >10000; także gdy `model` nieobsługiwany.
@@ -86,12 +94,14 @@
 - Rejestrowanie w tabeli błędów (jeśli istnieje) lub w logach aplikacyjnych (z korelacją request-id).
 
 ### 8. Rozważania dotyczące wydajności
+
 - timeout do OpenRouter 60 sekund.
 - Strumieniowanie nie jest wymagane – pełna odpowiedź po zakończeniu generacji.
 - Minimalizacja payloadu (`promptText` nie jest zwracany w odpowiedzi).
 - Agregacje liczb propozycji wykonywane po stronie serwisu, a do DB trafia tylko liczba.
 
 ### 9. Etapy wdrożenia (kroki implementacji)
+
 1. Typy i walidacja
    - Dodaj Zod schemat: `CreateGenerationSchema = z.object({ promptText: z.string().min(1000).max(10000), model: z.string().optional() })` w `src/lib/validation/generations.ts`.
    - Potwierdź dopasowanie do `CreateGenerationCommand` i typów DTO z `src/types.ts`.
@@ -121,6 +131,7 @@
    - Loguj `requestId`, `userId`, `model`, `durationMs`, `totalCount`, błędy.
 
 ### 10. Mapowanie DB -> DTO (camelCase)
+
 - `id` -> `id`
 - `total_count` -> `totalCount`
 - `accepted_unedited_count` -> `acceptedUneditedCount`
@@ -131,6 +142,7 @@
 - `updated_at` -> `updatedAt`
 
 ### 11. Potencjalne pułapki
+
 - Brak użytkownika w kontekście – konieczna obsługa 401.
 - Zbyt długi/krótki `promptText` – walidacja przed wywołaniem LLM.
 - Niestabilny format odpowiedzi LLM – defensywne mapowanie + odrzucanie niepoprawnych elementów.

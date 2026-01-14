@@ -4,14 +4,14 @@
 
 - **Główne widoki**: Logowanie (`/auth/login`), Generator AI (`/`), Moje fiszki (`/flashcards`).
 - **Ochrona tras**: guard sprawdzający sesję; `401` → wylogowanie i redirect do `/auth/login?redirectTo=<current>`; po logowaniu redirect do `/`.
-- **Integracja z API**: zgodna z planem REST (generations, accept, flashcards CRUD, auth). Wszystkie operacje uwierzytelnione (Bearer JWT – przygotowane w kliencie). 
-- **Stan aplikacji**: React hooks + Context. 
+- **Integracja z API**: zgodna z planem REST (generations, accept, flashcards CRUD, auth). Wszystkie operacje uwierzytelnione (Bearer JWT – przygotowane w kliencie).
+- **Stan aplikacji**: React hooks + Context.
   - Efemeryczne propozycje tylko w pamięci (brak utrwalenia po refreshu).
   - Optimistic UI dla `PATCH/DELETE` na fiszkach z rollbackiem; brak optimistic dla `POST /generations` ani `accept`.
-- **Responsywność**: 
+- **Responsywność**:
   - Desktop: split view (wejście po lewej, propozycje po prawej).
 - **Dostępność (a11y)**: pełna obsługa klawiatury, widoczne focus ringi, `aria-live` dla toastów, prawidłowe role dla tabel, dialogów i przycisków.
-- **Mapowanie błędów**: 
+- **Mapowanie błędów**:
   - `400/422` – komunikaty inline przy polach + toast.
   - `401` – wyloguj i redirect.
   - `403` – komunikat o braku uprawnień.
@@ -24,9 +24,10 @@
 ## 2. Lista widoków
 
 ### Widok: Logowanie
+
 - **Ścieżka widoku**: `/auth/login`
 - **Główny cel**: Uwierzytelnienie użytkownika i przekierowanie do generatora.
-- **Kluczowe informacje do wyświetlenia**: 
+- **Kluczowe informacje do wyświetlenia**:
   - Formularz: e‑mail, hasło.
   - Komunikaty walidacji i błędów (np. błędne poświadczenia).
 - **Kluczowe komponenty widoku**: `AuthForm`, `Button`, `Input`, `Card`, `Toast`.
@@ -39,6 +40,7 @@
 - **Powiązane endpointy API**: Supabase Auth w warstwie klienta.
 
 ### Widok: Generowanie Fiszek z AI
+
 - **Ścieżka widoku**: `/`
 - **Główny cel**: Wklejenie tekstu (1000–10000 znaków), wygenerowanie propozycji fiszek, przegląd/edycja/selekcja i masowa akceptacja.
 - **Kluczowe informacje do wyświetlenia**:
@@ -58,6 +60,7 @@
   - `POST /api/generations/{id}/accept` (akceptacja wybranych propozycji jako fiszki).
 
 ### Widok: Moje fiszki
+
 - **Ścieżka widoku**: `/flashcards` (+ query: `page`, `limit`, `sort`, `order`, `origin`, `generationId`)
 - **Główny cel**: Przeglądanie, filtrowanie, edycja inline i usuwanie zapisanych fiszek; ręczne dodawanie fiszki.
 - **Kluczowe informacje do wyświetlenia**:
@@ -77,15 +80,18 @@
   - `POST /api/flashcards` (ręczne tworzenie).
 
 ### Widok: Szczegóły fiszki (opcjonalnie, pod deeplink)
+
 - **Ścieżka widoku**: `/flashcards/:id`
 - **Główny cel**: Podgląd/edytowanie jednej fiszki pod bezpośrednim linkiem (opcjonalne; alternatywa dla edycji inline).
 - **Powiązane endpointy API**: `GET /api/flashcards/{id}`, `PATCH /api/flashcards/{id}`, `DELETE /api/flashcards/{id}`.
 
 ### Widoki systemowe
+
 - **401**: wylogowanie + redirect do `/auth/login?redirectTo=<current>`.
 - **403/404**: czytelny komunikat na stronie + przycisk powrotu.
 
 ### Widoki przyszłe (zgodne z PRD/API, poza MVP bieżącej iteracji)
+
 - Historia generacji (`/generations` i `/generations/:id`).
 - Sesja nauki (`/study`), endpointy `POST /api/study/session`, `POST /api/study/{sessionId}/review`.
 - Statystyki (`/stats`), endpointy `GET /api/stats/generations`, `GET /api/stats/flashcards`.
@@ -93,31 +99,36 @@
 ## 3. Mapa podróży użytkownika
 
 ### Główny przepływ: Generowanie i akceptacja fiszek
+
 1. Użytkownik trafia na `/auth/login` (jeśli brak sesji) i loguje się.
 2. Redirect do `/`. Użytkownik wkleja tekst (1000–10000), widzi licznik znaków.
 3. Klik „Generuj” → `POST /api/generations` → skeleton/loading; po sukcesie pojawia się panel propozycji z zaznaczonymi wszystkimi pozycjami.
 4. Przegląd, edycja inline (ustawienie „Edited”), odznaczanie niechcianych propozycji; walidacje długości pól.
-5. Klik „Zapisz zatwierdzone” lub „Zapisz wszystkie” → `POST /api/generations/{id}/accept`. 
+5. Klik „Zapisz zatwierdzone” lub „Zapisz wszystkie” → `POST /api/generations/{id}/accept`.
    - Błędy per‑pozycja: inline + toast; w razie błędu – pełny rollback UI.
 6. Po sukcesie CTA/link do `/flashcards?generationId=<id>`; użytkownik przegląda nowo dodane fiszki.
 
 ### Przepływ: Ręczne tworzenie fiszki
+
 1. Użytkownik wchodzi na `/flashcards`.
 2. Klik „Dodaj fiszkę” → dialog z polami `front` (1–200) i `back` (1–500).
 3. Submit → `POST /api/flashcards` → po sukcesie odświeżenie listy/optimistic insert; błędy 422 inline + toast.
 
 ### Przepływ: Edycja/Usuwanie fiszki
+
 1. Na `/flashcards` użytkownik rozwija wiersz (row‑expander) i edytuje pola.
 2. Zapis → `PATCH /api/flashcards/{id}` (optimistic, z rollbackiem przy błędzie).
 3. Usuwanie → `DeleteConfirmDialog` → `DELETE /api/flashcards/{id}` (optimistic, z rollbackiem, toast).
 
 ### Obsługa błędów i stanów
+
 - `401`: natychmiastowy logout i redirect do logowania z `redirectTo`.
 - `429`: komunikat o limicie i timer wg `Retry-After`.
 - `5xx/502`: toast i oferta ponowienia.
 - Puste listy: „Brak fiszek” z linkiem do generatora lub dodania ręcznego.
 
 ### Mapowanie historyjek użytkownika (PRD → UI)
+
 - **US‑001/US‑002**: Logowanie i dostęp – widok Logowanie + guard i redirect.
 - **US‑003**: Generowanie fiszek – widok Generator AI, `POST /api/generations`.
 - **US‑004**: Przegląd/akceptacja – panel propozycji + `POST /api/generations/{id}/accept`.
@@ -132,7 +143,7 @@
 - **Layout główny**: stały nagłówek z nawigacją i obszarem treści.
   - Logo/nazwa aplikacji (link do `/`).
   - Linki: „Generator” (`/`), „Moje fiszki” (`/flashcards`), „Zaloguj/Wyloguj”.
-- **Wewnątrz Generatora**: 
+- **Wewnątrz Generatora**:
   - Desktop: dwukolumnowy split (tekst wejściowy | propozycje).
 - **Synchronizacja stanu z URL**: `/flashcards` używa query params do paginacji, sortu i filtrów; nawigacja wstecz zachowuje stan.
 - **Strażnik tras**: przed renderem widoków chronionych sprawdza sesję; brak sesji → redirect do logowania.

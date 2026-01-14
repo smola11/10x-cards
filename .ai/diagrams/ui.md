@@ -1,4 +1,5 @@
 <architecture_analysis>
+
 - Komponenty i elementy (wg PRD i specyfikacji auth):
   - Layout: `src/layouts/Layout.astro` (nawigacja zależna od sesji, akcja Wyloguj)
   - Strony (Auth): `auth/login.astro`, `auth/register.astro`, `auth/forgot-password.astro`, `auth/reset-password.astro`
@@ -24,9 +25,10 @@
   - `Layout.astro` → nawigacja zależna od sesji, akcja `Wyloguj`
   - Middleware → SSR klient Supabase, `locals.supabase`, `locals.session`, bramkowanie ścieżek
   - API → operacje domenowe (flashcards/generations), egzekwowanie auth (401 gdy brak sesji; opcjonalny DEV bypass)
-</architecture_analysis>
+    </architecture_analysis>
 
 <mermaid_diagram>
+
 ```mermaid
 flowchart TD
 
@@ -159,5 +161,5 @@ flowchart TD
   classDef updated fill:#fff4e5,stroke:#e67e22,stroke-width:2px;
   class LayoutAstro,MiddlewareAstro,SSRClient,SessionLocals,ApiGenerations updated;
 ```
-</mermaid_diagram>
 
+</mermaid_diagram>
