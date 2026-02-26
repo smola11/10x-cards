@@ -184,7 +184,6 @@ export default function RegisterForm() {
               <FormMessage
                 tone="info"
                 title="Wypełnij formularz, aby utworzyć konto."
-                description="Hasło powinno zawierać małe i wielkie litery oraz cyfrę."
               />
             )}
 
@@ -258,11 +257,6 @@ export default function RegisterForm() {
                   disabled={isSubmitting}
                 />
               </FormField>
-
-              <p className="text-sm text-muted-foreground">
-                Rejestrując się, akceptujesz regulamin i politykę prywatności. W kolejnych iteracjach dodamy linki do
-                dokumentów.
-              </p>
 
               <p className="text-sm text-muted-foreground">
                 Masz już konto?{" "}

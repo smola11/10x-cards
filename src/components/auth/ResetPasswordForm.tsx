@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -40,12 +40,10 @@ const resetSchema = z
 
 type ResetFormValues = z.infer<typeof resetSchema>;
 
-interface ResetPasswordFormProps {
-  accessToken?: string | null;
-  emailHint?: string | null;
-}
-
-export default function ResetPasswordForm({ accessToken, emailHint }: ResetPasswordFormProps) {
+export default function ResetPasswordForm() {
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [emailHint, setEmailHint] = useState<string | null>(null);
+  const [isCheckingToken, setIsCheckingToken] = useState(true);
   const initialValues = useMemo<ResetFormValues>(
     () => ({
       password: "",
@@ -64,6 +62,28 @@ export default function ResetPasswordForm({ accessToken, emailHint }: ResetPassw
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Wyciągnij token z hash URL (Supabase wysyła token w #access_token, nie w ?access_token)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) {
+      setIsCheckingToken(false);
+      return;
+    }
+
+    // Parse hash parameters
+    const params = new URLSearchParams(hash.substring(1)); // usuń # na początku
+    const token = params.get("access_token");
+    const type = params.get("type");
+    const email = params.get("email");
+
+    if (type === "recovery" && token) {
+      setAccessToken(token);
+      setEmailHint(email);
+    }
+
+    setIsCheckingToken(false);
+  }, []);
 
   const isTokenMissing = !accessToken;
 
@@ -155,6 +175,27 @@ export default function ResetPasswordForm({ accessToken, emailHint }: ResetPassw
     },
     [isTokenMissing, values]
   );
+
+  // Pokaż loader podczas sprawdzania tokenu
+  if (isCheckingToken) {
+    return (
+      <form className="w-full max-w-md">
+        <Card className="border-border/70 bg-card/80 backdrop-blur">
+          <CardHeader>
+            <CardTitle>Ustaw nowe hasło</CardTitle>
+            <CardDescription>
+              Wprowadź nowe hasło, którego będziesz używać do logowania. Link jest jednorazowy i wygasa po kilku
+              minutach.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="flex flex-col gap-6">
+            <FormMessage tone="info" title="Sprawdzanie tokenu resetującego..." description="Proszę czekać." />
+          </CardContent>
+        </Card>
+      </form>
+    );
+  }
 
   return (
     <>
