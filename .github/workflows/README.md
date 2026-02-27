@@ -1,5 +1,42 @@
 # GitHub Actions Workflows
 
+## AI Changelog (`ai-changelog.yml`)
+
+This workflow runs **manually** on demand and uses **Gemini Flash** to analyze the last N commits and generate a changelog summary. It updates `CHANGELOG.md` and opens a Pull Request with the changes.
+
+### Prerequisites
+
+1. **Repository secret `GOOGLE_API_KEY`**:
+   - Go to [Google AI Studio](https://aistudio.google.com/apikey) and create an API key.
+   - In your repo: **Settings** → **Secrets and variables** → **Actions** → **New repository secret**.
+   - Name: `GOOGLE_API_KEY`, value: your API key.
+
+2. **How to run**:
+   - Go to **Actions** tab → select **AI Changelog (Gemini)** workflow.
+   - Click **Run workflow**, optionally choose branch and **commits to analyze** (default: 10).
+   - Click **Run workflow** again to confirm.
+
+### Workflow Structure
+
+1. **Gather commit context** – fetches the last N commits from `master` (SHA, author, date, subject, body).
+2. **Idempotency check** – skips if the same commit range was already processed (marker in `CHANGELOG.md`).
+3. **Call Gemini API** – sends commits to Gemini Flash and receives a bullet-list summary.
+4. **Update CHANGELOG.md** – inserts a new section at the top and creates the file if missing.
+5. **Create Pull Request** – opens a PR to `master` with the changelog changes (branch: `chore/ai-changelog`).
+
+### Required Permissions
+
+- `contents: write` – to commit changes.
+- `pull-requests: write` – to create PRs.
+
+### Troubleshooting
+
+**"GOOGLE_API_KEY secret is not set"** – add the secret in repo Settings → Secrets and variables → Actions.
+
+**Workflow does nothing** – ensure the idempotency marker is not already present for the same commit range.
+
+---
+
 ## Pull Request CI (`pull-request.yml`)
 
 This workflow runs automatically on every pull request to the `master` branch.
