@@ -124,6 +124,11 @@ jobs:
             echo "$REST"
           } > CHANGELOG.md
 
+      - name: Cleanup temporary files
+        if: steps.idempotency.outputs.already_exists != 'true'
+        run: |
+          rm -f commits.txt changelog_bullets.txt
+
       - name: Create Pull Request
         if: steps.idempotency.outputs.already_exists != 'true'
         uses: peter-evans/create-pull-request@v7
@@ -132,6 +137,8 @@ jobs:
           base: master
           branch: chore/ai-changelog
           delete-branch: true
+          add-paths: |
+            CHANGELOG.md
           commit-message: "chore: update CHANGELOG (Gemini)"
           title: "chore: update CHANGELOG (Gemini)"
           body: |
