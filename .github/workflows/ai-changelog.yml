@@ -1,0 +1,142 @@
+name: AI Changelog (Gemini)
+
+on:
+  workflow_dispatch:
+    inputs:
+      commits_to_analyze:
+        description: "Number of commits to analyze"
+        required: false
+        default: 10
+        type: number
+
+concurrency:
+  group: ai-changelog-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  generate-changelog:
+    name: Generate and Update CHANGELOG
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: master
+
+      - name: Validate API key
+        run: |
+          if [ -z "${{ secrets.GOOGLE_API_KEY }}" ]; then
+            echo "::error::GOOGLE_API_KEY secret is not set. Add it in repo Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Gather commit context
+        id: commits
+        run: |
+          COMMITS_N=${{ github.event.inputs.commits_to_analyze || 10 }}
+          git log -n "$COMMITS_N" --format="SHA: %H%nAuthor: %an%nDate: %ad%nSubject: %s%nBody: %b%n---" --date=short > commits.txt
+          NEWEST_SHA=$(git rev-parse HEAD)
+          OLDEST_SHA=$(git log -n "$COMMITS_N" --format="%H" | tail -1)
+          if [ -z "$OLDEST_SHA" ]; then
+            OLDEST_SHA="$NEWEST_SHA"
+          fi
+          echo "newest_sha=$NEWEST_SHA" >> $GITHUB_OUTPUT
+          echo "oldest_sha=$OLDEST_SHA" >> $GITHUB_OUTPUT
+          echo "range=${OLDEST_SHA}..${NEWEST_SHA}" >> $GITHUB_OUTPUT
+          echo "run_date=$(date -u +%Y-%m-%d)" >> $GITHUB_OUTPUT
+
+      - name: Check idempotency marker
+        id: idempotency
+        run: |
+          RANGE="${{ steps.commits.outputs.range }}"
+          if [ -f CHANGELOG.md ] && grep -qF "<!-- ai-changelog: ${RANGE} -->" CHANGELOG.md 2>/dev/null; then
+            echo "already_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "already_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Call Gemini API
+        if: steps.idempotency.outputs.already_exists != 'true'
+        id: gemini
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: |
+          COMMITS_CONTENT=$(cat commits.txt)
+          PROMPT="You are a technical writer. Analyze the following git commits and produce a changelog summary.
+
+          RULES:
+          - Output ONLY a markdown bullet list (each line starting with '- '). No headers, no extra text.
+          - 5-10 bullet points maximum.
+          - Do not invent features not present in the commits.
+          - Group similar changes. Skip noise like 'merge branch', 'fix typo' unless significant.
+          - Write in English, past tense (e.g. 'Updated dependencies', 'Fixed auth flow').
+
+          COMMITS:
+          $COMMITS_CONTENT"
+
+          BODY=$(jq -n \
+            --arg text "$PROMPT" \
+            '{contents: [{parts: [{text: $text}]}]}')
+
+          RESPONSE=$(curl -s -X POST \
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$BODY")
+
+          BULLETS=$(echo "$RESPONSE" | jq -r '.candidates[0].content.parts[0].text // empty')
+          if [ -z "$BULLETS" ]; then
+            echo "::error::Gemini API returned no content. Response: $RESPONSE"
+            exit 1
+          fi
+          echo "$BULLETS" > changelog_bullets.txt
+
+      - name: Update CHANGELOG.md
+        if: steps.idempotency.outputs.already_exists != 'true'
+        run: |
+          RUN_DATE="${{ steps.commits.outputs.run_date }}"
+          OLDEST="${{ steps.commits.outputs.oldest_sha }}"
+          NEWEST="${{ steps.commits.outputs.newest_sha }}"
+          RANGE="${{ steps.commits.outputs.range }}"
+          BULLETS=$(cat changelog_bullets.txt)
+
+          if [ ! -f CHANGELOG.md ]; then
+            echo "## 10x-cards - Changelog" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+          fi
+
+          # Build new section and insert after main title (first 2 lines)
+          HEADER=$(head -2 CHANGELOG.md)
+          REST=$(tail -n +3 CHANGELOG.md)
+          {
+            echo "$HEADER"
+            echo ""
+            echo "<!-- ai-changelog: ${RANGE} -->"
+            echo "### ${RUN_DATE} (run) — commits ${OLDEST:0:7}..${NEWEST:0:7}"
+            echo ""
+            echo "$BULLETS"
+            echo ""
+            echo ""
+            echo "$REST"
+          } > CHANGELOG.md
+
+      - name: Create Pull Request
+        if: steps.idempotency.outputs.already_exists != 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: master
+          branch: chore/ai-changelog
+          delete-branch: true
+          commit-message: "chore: update CHANGELOG (Gemini)"
+          title: "chore: update CHANGELOG (Gemini)"
+          body: |
+            Changelog summary generated by Gemini Flash based on the last ${{ github.event.inputs.commits_to_analyze || 10 }} commits.
+
+            **Commit range:** `${{ steps.commits.outputs.range }}`  
+            **Run:** [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          draft: false
