@@ -1,0 +1,60 @@
+SHA: 37d2ad5b1b8008fd367043dd95e3a4962eac46fc
+Author: maciej
+Date: 2026-02-27
+Subject: Update AI Changelog workflow to use Gemini 2.5 API and enhance README with detailed usage instructions
+Body: 
+---
+SHA: 1248d22c368b21aae5cd5c0371dfea6e434686f5
+Author: maciej
+Date: 2026-02-27
+Subject: Add AI Changelog workflow for automated changelog generation using Gemini API
+Body: 
+---
+SHA: dfe59fa79df9b267c7c477940d7e7f0cc3ab3a99
+Author: smola11
+Date: 2026-02-26
+Subject: Merge pull request #2 from smola11/ccm-review
+Body: Add Claude Code Action Review workflow for automated PR feedback
+---
+SHA: f119aef9512314466aaedd6e326eb97c44d3ee72
+Author: maciej
+Date: 2026-02-26
+Subject: Add Claude Code Action Review workflow for automated PR feedback
+Body: 
+---
+SHA: fbd97cba1437f124b745027d6e9e00ff4201d5cd
+Author: maciej
+Date: 2026-01-14
+Subject: Update README and GitHub workflows documentation
+Body: 
+---
+SHA: e9567dfbe279aee9df5f226acf6547d4198ab89b
+Author: maciej
+Date: 2026-01-14
+Subject: Formatting pull-request.yml.
+Body: 
+---
+SHA: dcc6d7b01b1bd88bca2da1f0638df134706f7191
+Author: maciej
+Date: 2026-01-14
+Subject: AI documentation
+Body: 
+---
+SHA: e4310db3d6a86c8c8af7e2a5cd8822f4f0eaaae8
+Author: smola11
+Date: 2026-01-14
+Subject: Merge pull request #1 from smola11/new-branch
+Body: Update README
+---
+SHA: b331ce5106ef1bfc8ddd2dc5982541410d894fd2
+Author: maciej
+Date: 2026-01-13
+Subject: Enhance Vitest configuration to dynamically exclude default test files along with E2E tests
+Body: 
+---
+SHA: 1c704ba28c4b680b9909135653432e57dfad21e6
+Author: maciej
+Date: 2026-01-13
+Subject: package-lock.json updated
+Body: 
+---

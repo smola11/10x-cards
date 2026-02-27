@@ -1,0 +1,5 @@
+- Added a new AI Changelog workflow for automated changelog generation using the Gemini API.
+- Updated the AI Changelog workflow to utilize the Gemini 2.5 API.
+- Introduced a Claude Code Action Review workflow to provide automated pull request feedback.
+- Enhanced Vitest configuration to dynamically exclude default test files and end-to-end tests.
+- Updated README and GitHub workflows documentation, including detailed usage instructions for the AI Changelog workflow.
