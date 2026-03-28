@@ -158,16 +158,9 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
             <CardTitle>Logowanie</CardTitle>
             <CardDescription>Zaloguj się, aby uzyskać dostęp do swoich fiszek i generacji.</CardDescription>
           </CardHeader>
-
           <CardContent className="flex flex-col gap-6">
-            {formMessage ? (
+            {formMessage && (
               <FormMessage tone={formMessage.tone} title={formMessage.title} description={formMessage.description} />
-            ) : (
-              <FormMessage
-                tone="info"
-                title="Brak aktywnej sesji."
-                description="Po poprawnym logowaniu przekierujemy Cię do panelu głównego."
-              />
             )}
 
             <div className="flex flex-col gap-5">
